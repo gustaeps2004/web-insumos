@@ -5,5 +5,69 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["auth"]
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid @map("Id")
+  username          String    @unique @map("Username") @db.VarChar(100)
+  password          String    @map("Password")
+  emailConfirmed    Boolean   @default(false) @map("EmailConfirmed")
+  accessFailedCount Int       @default(0) @map("AccessFailedCount")
+  status            Int       @default(1) @map("Status")
+  passwordChangedAt DateTime? @map("PasswordChangedAt")
+  updatedAt         DateTime  @updatedAt @map("UpdatedAt")
+  createdAt         DateTime  @default(now()) @map("CreatedAt")
+
+  passwordHistory PasswordHistory[]
+  tokens          UserToken[]
+  accessLogs      UserAccessLog[]
+
+  @@map("Users")
+  @@schema("auth")
+}
+
+model PasswordHistory {
+  id        String   @id @default(uuid()) @db.Uuid @map("Id")
+  userId    String   @map("UserId") @db.Uuid
+  password  String   @map("Password")
+  createdAt DateTime @default(now()) @map("CreatedAt")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("PasswordHistory")
+  @@schema("auth")
+}
+
+model UserToken {
+  id        String    @id @default(uuid()) @db.Uuid @map("Id")
+  userId    String?   @map("UserId") @db.Uuid
+  purpose   String    @map("Purpose")
+  tokenHash String    @map("TokenHash")
+  usedAt    DateTime? @map("UsedAt")
+  createdAt DateTime  @default(now()) @map("CreatedAt")
+  expiresAt DateTime  @map("ExpiresAt")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("UserTokens")
+  @@schema("auth")
+}
+
+model UserAccessLog {
+  id          String   @id @default(uuid()) @db.Uuid @map("Id")
+  userId      String?  @map("UserId") @db.Uuid
+  username    String   @map("Username")
+  requestType String   @map("RequestType")
+  status      Int      @map("Status")
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("UsersAccessLog")
+  @@schema("auth")
 }
 
